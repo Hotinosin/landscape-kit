@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use lkit_repository::parse_stable_version;
+use lkit_repository::parse_landscape_version;
 use semver::Version;
 
 use super::layout;
@@ -31,7 +31,7 @@ impl TargetVersion {
         }
         let canonical = value.strip_prefix('v').unwrap_or(value);
         let version =
-            parse_stable_version(canonical).map_err(|error| InstallError::InvalidVersion {
+            parse_landscape_version(canonical).map_err(|error| InstallError::InvalidVersion {
                 value: value.into(),
                 reason: error.to_string(),
             })?;
@@ -46,6 +46,20 @@ impl std::fmt::Display for TargetVersion {
             Self::Version(version) => write!(f, "{version}"),
         }
     }
+}
+
+pub(crate) fn compare_versions(left: &Version, right: &Version) -> std::cmp::Ordering {
+    if (left.major, left.minor, left.patch) == (right.major, right.minor, right.patch) {
+        let extension = |version: &Version| {
+            version.pre.as_str().split('.').next() == Some("extension")
+        };
+        match (extension(left), extension(right)) {
+            (true, false) => return std::cmp::Ordering::Greater,
+            (false, true) => return std::cmp::Ordering::Less,
+            _ => {}
+        }
+    }
+    left.cmp(right)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -450,9 +464,22 @@ mod tests {
         assert!(TargetVersion::parse("v0.19").is_err());
         assert!(TargetVersion::parse("0.20.0-rc.1").is_err());
         assert!(TargetVersion::parse("v0.20.0-rc.1").is_err());
+        assert_eq!(
+            TargetVersion::parse("v0.20.0-extension.1").unwrap(),
+            TargetVersion::Version(Version::parse("0.20.0-extension.1").unwrap())
+        );
         assert!(TargetVersion::parse("1.2.3+build.1").is_err());
         assert!(TargetVersion::parse("release-0.19.2").is_err());
         assert!(TargetVersion::parse("").is_err());
+    }
+
+    #[test]
+    fn orders_extensions_after_the_matching_upstream_version() {
+        let upstream = Version::parse("0.24.2").unwrap();
+        let first = Version::parse("0.24.2-extension.1").unwrap();
+        let second = Version::parse("0.24.2-extension.2").unwrap();
+        assert_eq!(compare_versions(&first, &upstream), std::cmp::Ordering::Greater);
+        assert_eq!(compare_versions(&second, &first), std::cmp::Ordering::Greater);
     }
 
     #[test]

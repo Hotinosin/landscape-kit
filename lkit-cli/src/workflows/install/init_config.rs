@@ -12,7 +12,7 @@ use crate::deployment::layout;
 pub(crate) fn parse_stable_version(
     value: &str,
 ) -> Result<semver::Version, lkit_repository::ProtocolError> {
-    lkit_repository::parse_stable_version(value)
+    lkit_repository::parse_landscape_version(value)
 }
 
 pub(crate) fn activate_current(

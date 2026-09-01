@@ -288,7 +288,12 @@ impl InstallForm {
         plan::TargetVersion::parse(version).map_err(|error| error.to_string())?;
         plan::validate_admin_user(&self.admin_user).map_err(|error| error.to_string())?;
         if self.repository == RepositoryMode::Custom {
-            plan::RepositoryChoice::Http(self.repository_url.trim().to_string())
+            let location = self.repository_url.trim().to_string();
+            if location.contains("://") {
+                plan::RepositoryChoice::Http(location)
+            } else {
+                plan::RepositoryChoice::Github(location)
+            }
                 .resolve()
                 .map_err(|error| error.to_string())?;
         }

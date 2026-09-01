@@ -88,7 +88,8 @@ location = "https://repo.example.com/landscape/"
 
 `[frontend]` 段登记多个前端源并选择激活项。配置了自定义前端时，install/update/
 switch 构建版本目录后会按激活源解析前端包并替换 `static/`（`static.zip` 官方基线
-不变）；`repair static` 按激活源意图恢复。不配置该段或激活 `official` = 官方前端。
+不变）；`repair static` 按激活源意图恢复。不配置该段或选择 `official`/`bundled`
+即跟随后端 Release 中配套的前端。
 完整包格式与发布协议见[前端开发规范](../frontend/developer.md)。
 
 ```toml

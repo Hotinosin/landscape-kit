@@ -234,7 +234,7 @@ JSON 数值必须能无损转换为 `u64` 正整数。实际下载大小或 SHA-
 - 请求头至少包含 `Accept: application/vnd.github+json`、非空 `User-Agent` 和 `X-GitHub-Api-Version: 2022-11-28`；
 - 公共仓库默认允许匿名请求；存在 `GITHUB_TOKEN` 时作为 Bearer token 使用，但不得写入日志、状态、事务或错误详情；
 - 解析 `latest` 时直接复用该接口返回的 Release 资产，不遍历分页列表，也不再次按 tag 查询；
-- latest Release 的 tag 不是规范化 stable SemVer（可带单个 `v` 前缀）时，视为该仓库没有可安装的 stable 版本；
+- 官方仓库的 latest tag 必须是规范化 stable SemVer（可带单个 `v` 前缀）；显式配置的自定义 GitHub 仓库还接受与后端版本一致的 `-extension.*` 标签；
 - 显式版本同时接受 tag `0.19.2` 和 `v0.19.2`，两者同时存在时视为冲突；
 - `404` 不推断仓库、权限或版本中的具体原因；
 - `401` 表示 token 无效；
@@ -245,7 +245,7 @@ Release 资产使用元数据中的 `browser_download_url` 下载。`SHASUM256su
 
 官方 provider 转换为统一发布模型时：
 
-- 忽略 draft 和 prerelease；
+- 忽略 GitHub draft 和标记为 prerelease 的 Release；自定义仓库允许普通 Release 使用 `-extension.*` 版本标签；
 - 使用 SemVer 排序；
 - 同一版本的后端、静态页面和校验清单必须来自同一个 Release；
 - `x86_64` 原始资产使用 `landscape-webserver-x86_64`；

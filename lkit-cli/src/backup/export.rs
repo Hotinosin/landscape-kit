@@ -4,7 +4,7 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::Path;
 use std::time::Duration;
 
-use lkit_repository::parse_stable_version;
+use lkit_repository::parse_landscape_version as parse_stable_version;
 use reqwest::header::ACCEPT;
 use serde_json::Value;
 

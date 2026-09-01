@@ -115,6 +115,20 @@ pub fn parse_stable_version(value: &str) -> Result<Version, ProtocolError> {
     Ok(version)
 }
 
+pub fn parse_landscape_version(value: &str) -> Result<Version, ProtocolError> {
+    let version = Version::parse(value).map_err(ProtocolError::InvalidVersion)?;
+    if version.to_string() != value {
+        return Err(ProtocolError::NonCanonicalVersion(value.into()));
+    }
+    if !version.build.is_empty()
+        || (!version.pre.is_empty()
+            && version.pre.as_str().split('.').next() != Some("extension"))
+    {
+        return Err(ProtocolError::UnstableVersion(version));
+    }
+    Ok(version)
+}
+
 pub fn validate_stable_version(version: &Version) -> Result<(), ProtocolError> {
     if !version.pre.is_empty() || !version.build.is_empty() {
         return Err(ProtocolError::UnstableVersion(version.clone()));
@@ -192,6 +206,17 @@ mod tests {
     fn rejects_prerelease_and_build_versions() {
         assert!(parse_stable_version("1.2.3-beta.1").is_err());
         assert!(parse_stable_version("1.2.3+build.1").is_err());
+    }
+
+    #[test]
+    fn accepts_extension_landscape_versions() {
+        assert_eq!(
+            parse_landscape_version("0.24.2-extension.20260901").unwrap(),
+            Version::parse("0.24.2-extension.20260901").unwrap()
+        );
+        assert!(parse_landscape_version("0.24.2-extensionfoo.1").is_err());
+        assert!(parse_landscape_version("0.24.2-rc.1").is_err());
+        assert!(parse_landscape_version("0.24.2+custom").is_err());
     }
 
     #[test]

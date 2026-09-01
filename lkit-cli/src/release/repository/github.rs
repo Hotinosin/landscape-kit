@@ -17,6 +17,7 @@ const USER_AGENT_VALUE: &str = concat!("lkit/", env!("CARGO_PKG_VERSION"));
 
 pub(crate) struct GithubRepository {
     repository: String,
+    allow_extensions: bool,
     client: DownloadClient,
     token: Option<String>,
 }
@@ -29,6 +30,7 @@ impl GithubRepository {
             .ok()
             .filter(|value| !value.is_empty());
         Ok(Self {
+            allow_extensions: repository != DEFAULT_REPOSITORY,
             repository: repository.to_string(),
             client,
             token,
@@ -52,7 +54,7 @@ impl GithubRepository {
         };
         let release: GithubRelease =
             serde_json::from_slice(&body).map_err(RepositoryError::InvalidJson)?;
-        let Some(version) = latest_release_version(&release)? else {
+        let Some(version) = latest_release_version(&release, self.allow_extensions)? else {
             return Ok(None);
         };
         self.build_release(&headers, release, &version, architecture)
@@ -65,7 +67,10 @@ impl GithubRepository {
         version: &Version,
         architecture: Architecture,
     ) -> Result<Release, RepositoryError> {
-        if !version.pre.is_empty() {
+        if !version.pre.is_empty()
+            && (!self.allow_extensions
+                || version.pre.as_str().split('.').next() != Some("extension"))
+        {
             return Err(RepositoryError::InvalidRelease(format!(
                 "v1 does not allow installing prerelease version {version}"
             )));
@@ -360,22 +365,30 @@ fn unique_asset<'a>(
     Ok(asset)
 }
 
-fn parse_tag(tag: &str) -> Option<Version> {
+fn parse_tag(tag: &str, allow_extensions: bool) -> Option<Version> {
     let value = tag.strip_prefix('v').unwrap_or(tag);
     let version = Version::parse(value).ok()?;
-    if version.to_string() != value || !version.pre.is_empty() {
+    if version.to_string() != value
+        || !version.build.is_empty()
+        || (!version.pre.is_empty()
+            && (!allow_extensions
+                || version.pre.as_str().split('.').next() != Some("extension")))
+    {
         return None;
     }
     Some(version)
 }
 
-fn latest_release_version(release: &GithubRelease) -> Result<Option<Version>, RepositoryError> {
+fn latest_release_version(
+    release: &GithubRelease,
+    allow_extensions: bool,
+) -> Result<Option<Version>, RepositoryError> {
     if release.draft || release.prerelease {
         return Err(RepositoryError::InvalidRelease(
             "GitHub latest release must not be a draft or prerelease".into(),
         ));
     }
-    Ok(parse_tag(&release.tag_name))
+    Ok(parse_tag(&release.tag_name, allow_extensions))
 }
 
 /// 严格解析 GNU `sha256sum` 文本格式：每行 64 位小写十六进制、空格或星号、
@@ -455,16 +468,22 @@ mod tests {
     #[test]
     fn parses_tag_with_and_without_v() {
         assert_eq!(
-            parse_tag("0.19.2").unwrap(),
+            parse_tag("0.19.2", false).unwrap(),
             Version::parse("0.19.2").unwrap()
         );
         assert_eq!(
-            parse_tag("v0.19.2").unwrap(),
+            parse_tag("v0.19.2", false).unwrap(),
             Version::parse("0.19.2").unwrap()
         );
-        assert_eq!(parse_tag("v0.19.2-rc.1"), None);
-        assert_eq!(parse_tag("0.19"), None);
-        assert_eq!(parse_tag("release-0.19.2"), None);
+        assert_eq!(parse_tag("v0.19.2-rc.1", false), None);
+        assert_eq!(parse_tag("0.19", false), None);
+        assert_eq!(parse_tag("release-0.19.2", false), None);
+        assert_eq!(parse_tag("v0.24.2-extension.1", false), None);
+        assert_eq!(parse_tag("v0.24.2-extensionfoo.1", true), None);
+        assert_eq!(
+            parse_tag("v0.24.2-extension.1", true).unwrap(),
+            Version::parse("0.24.2-extension.1").unwrap()
+        );
     }
 
     #[test]
@@ -476,7 +495,7 @@ mod tests {
             assets: Vec::new(),
         };
         assert_eq!(
-            latest_release_version(&release).unwrap(),
+            latest_release_version(&release, false).unwrap(),
             Some(Version::new(1, 2, 3))
         );
 
@@ -486,7 +505,7 @@ mod tests {
             prerelease: false,
             assets: Vec::new(),
         };
-        assert!(latest_release_version(&invalid_tag).unwrap().is_none());
+        assert!(latest_release_version(&invalid_tag, false).unwrap().is_none());
 
         let prerelease = GithubRelease {
             tag_name: "1.2.3".into(),
@@ -494,7 +513,7 @@ mod tests {
             prerelease: true,
             assets: Vec::new(),
         };
-        assert!(latest_release_version(&prerelease).is_err());
+        assert!(latest_release_version(&prerelease, false).is_err());
     }
 
     #[test]

@@ -125,12 +125,13 @@ sha256 + size 校验下载。HTTP 形式没有版本枚举能力，每个 stable
 - 用户锁定旧后端版本时，自定义前端可能与其不兼容——由 `api_min_version` 警告
   提示，用户自行承担；
 - 源不可达或元数据非法时，需要前端源的命令**阻断**并提示逃生路径（移除
-  `[frontend]` 配置或 `lkit frontend select official`）。
+  `[frontend]` 配置或 `lkit frontend select bundled`）。
 
 ## 与 lkit 的集成行为
 
 用户通过 `config.toml` 的 `[frontend]` 段登记多个前端源并选择激活项（见
-[配置文件](../deployment/config.md)）。不配置或激活 `official` = 官方页面。
+[配置文件](../deployment/config.md)）。不配置或选择 `official`/`bundled` 时，使用
+后端 Release 中配套并经过同一校验清单验证的 `static.zip`。
 
 | 场景 | 行为 |
 |---|---|
