@@ -23,7 +23,7 @@ pub struct FrontendAdd {
 
 #[derive(Debug, Args)]
 pub struct FrontendSelect {
-    /// Source id to activate, or `official` for the official frontend
+    /// Source id to activate, or `official`/`bundled` to follow the backend release
     pub id: String,
 }
 
@@ -69,7 +69,7 @@ pub fn run(args: &Frontend) -> ExitCode {
 }
 
 fn add(args: &FrontendAdd) -> Result<(), InstallError> {
-    if args.id == crate::deployment::config::FRONTEND_OFFICIAL {
+    if matches!(args.id.as_str(), "official" | "bundled") {
         return Err(InstallError::ParameterUsage(format!(
             "the id {:?} is reserved; choose another id",
             args.id
@@ -113,15 +113,15 @@ fn add(args: &FrontendAdd) -> Result<(), InstallError> {
 
 fn select(args: &FrontendSelect) -> Result<(), InstallError> {
     let mut section = load_frontend()?.unwrap_or_default();
-    if args.id == crate::deployment::config::FRONTEND_OFFICIAL {
+    if matches!(args.id.as_str(), "official" | "bundled") {
         section.active = None;
         save_frontend(&section)?;
-        println!("frontend: switched to the official frontend");
+        println!("frontend: switched to the frontend bundled with the backend release");
         return Ok(());
     }
     if !section.sources.iter().any(|source| source.id == args.id) {
         return Err(InstallError::ParameterUsage(format!(
-            "unknown frontend source {:?}; valid values are: official, {}",
+            "unknown frontend source {:?}; valid values are: bundled, official, {}",
             args.id,
             section
                 .sources

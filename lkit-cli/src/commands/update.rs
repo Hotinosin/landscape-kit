@@ -90,7 +90,7 @@ async fn run_update(
         None => TargetVersion::Latest,
     };
     let resolved = resolve_update_target(&state, &repository, &target).await?;
-    match resolved.target.cmp(&resolved.current) {
+    match plan::compare_versions(&resolved.target, &resolved.current) {
         std::cmp::Ordering::Less => {
             return Err(plan::InstallError::ParameterUsage(crate::tr!(
                 crate::keys::SWITCH_DOWNGRADE_NOT_SUPPORTED,
@@ -157,7 +157,7 @@ pub(crate) async fn resolve_update_target(
             .ok_or(plan::InstallError::NoStableVersion)?,
         TargetVersion::Version(version) => provider.release(version, architecture).await?,
     };
-    let current = lkit_repository::parse_stable_version(&state.active_version)
+    let current = lkit_repository::parse_landscape_version(&state.active_version)
         .map_err(|_| plan::InstallError::CorruptedState("invalid active version".into()))?;
     Ok(ResolvedUpdate {
         current,
@@ -232,8 +232,12 @@ fn select_repository(
         )),
         (Some(_), 2) | (None, 1) => Ok(RepositoryChoice::Mirror),
         _ => {
-            let url = tty.input(&crate::tr!(crate::keys::UPDATE_REPOSITORY_URL))?;
-            Ok(RepositoryChoice::Http(url))
+            let location = tty.input(&crate::tr!(crate::keys::UPDATE_REPOSITORY_URL))?;
+            Ok(if location.contains("://") {
+                RepositoryChoice::Http(location)
+            } else {
+                RepositoryChoice::Github(location)
+            })
         }
     }
 }

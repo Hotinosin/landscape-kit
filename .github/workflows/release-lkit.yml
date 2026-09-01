@@ -238,7 +238,7 @@ jobs:
             exit 1
           fi
           prerelease=()
-          if [[ "$TAG" == *-* ]]; then
+          if [[ "$TAG" == *-* && "$TAG" != *-extension.* ]]; then
             prerelease+=(--prerelease)
           fi
           gh release create "$TAG" \

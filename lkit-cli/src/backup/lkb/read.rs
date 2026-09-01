@@ -4,7 +4,7 @@ use std::path::Path;
 
 use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
-use lkit_repository::{parse_stable_version, zip_path_parts};
+use lkit_repository::{parse_landscape_version as parse_stable_version, zip_path_parts};
 use sha2::{Digest, Sha256};
 
 use super::super::plan::InstallError;

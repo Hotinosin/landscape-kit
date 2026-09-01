@@ -80,6 +80,9 @@ pub(crate) fn repository_override(
         Some(Some(value)) if value == "github" => Some(plan::RepositoryChoice::Github(
             crate::release::repository::github::DEFAULT_REPOSITORY.into(),
         )),
+        Some(Some(location)) if !location.contains("://") => {
+            Some(plan::RepositoryChoice::Github(location.clone()))
+        }
         Some(Some(url)) => Some(plan::RepositoryChoice::Http(url.clone())),
     }
 }
@@ -845,6 +848,10 @@ mod tests {
             Some(plan::RepositoryChoice::Http(
                 "https://example.com/releases/".into()
             ))
+        );
+        assert_eq!(
+            repository_override(&Some(Some("Hotinosin/landscape".into()))),
+            Some(plan::RepositoryChoice::Github("Hotinosin/landscape".into()))
         );
     }
 }

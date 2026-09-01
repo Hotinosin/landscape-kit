@@ -59,7 +59,7 @@ pub(crate) async fn switch_version<P: DocsProbe>(
     let from_version = parse_stable_version(&state.active_version).map_err(|error| {
         InstallError::CorruptedState(format!("invalid active version: {error}"))
     })?;
-    match release.version.cmp(&from_version) {
+    match super::plan::compare_versions(&release.version, &from_version) {
         std::cmp::Ordering::Less => {
             return Err(InstallError::ParameterUsage(crate::tr!(
                 crate::keys::SWITCH_DOWNGRADE_NOT_SUPPORTED,

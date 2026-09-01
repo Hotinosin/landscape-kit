@@ -4,7 +4,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 
 use chrono::{DateTime, Utc};
-use lkit_repository::parse_stable_version;
+use lkit_repository::parse_landscape_version as parse_stable_version;
 use serde::{Deserialize, Serialize};
 
 use super::layout;

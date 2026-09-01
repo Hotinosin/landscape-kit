@@ -127,6 +127,14 @@ impl UpdateRepositoryMode {
     }
 }
 
+fn custom_repository(location: &str) -> plan::RepositoryChoice {
+    if location.contains("://") {
+        plan::RepositoryChoice::Http(location.into())
+    } else {
+        plan::RepositoryChoice::Github(location.into())
+    }
+}
+
 /// 卸载面板：版本/服务摘要 + 数据损失与保留物说明 + 确认层。
 /// 确认层打开时检测网络接管特征并展示警告;Enter 分发结构化请求。
 #[derive(Default)]
@@ -246,7 +254,7 @@ impl UpdatePanel {
 
     /// 消费后台解析结果,按与命令模式相同的规则分支。
     pub(crate) fn apply_resolution(&mut self, notice: &mut String, resolved: ResolvedUpdate) {
-        match resolved.current.cmp(&resolved.target) {
+        match plan::compare_versions(&resolved.current, &resolved.target) {
             std::cmp::Ordering::Equal => {
                 *notice = crate::tr!(
                     crate::keys::UPDATE_ALREADY_UP_TO_DATE,
@@ -372,7 +380,7 @@ impl ConsoleApp {
         plan::TargetVersion::parse(self.update.version.trim())
             .map_err(|error| error.to_string())?;
         if self.update.repository == UpdateRepositoryMode::Custom {
-            plan::RepositoryChoice::Http(self.update.repository_url.trim().to_string())
+            custom_repository(self.update.repository_url.trim())
                 .resolve()
                 .map_err(|error| error.to_string())?;
         }
@@ -395,9 +403,7 @@ impl ConsoleApp {
                 crate::release::repository::github::DEFAULT_REPOSITORY.into(),
             ),
             UpdateRepositoryMode::Mirror => plan::RepositoryChoice::Mirror,
-            UpdateRepositoryMode::Custom => {
-                plan::RepositoryChoice::Http(self.update.repository_url.trim().to_string())
-            }
+            UpdateRepositoryMode::Custom => custom_repository(self.update.repository_url.trim()),
         };
         let version = self.update.version.trim().to_string();
         let language = crate::i18n::current();
