@@ -294,8 +294,8 @@ impl InstallForm {
             } else {
                 plan::RepositoryChoice::Github(location)
             }
-                .resolve()
-                .map_err(|error| error.to_string())?;
+            .resolve()
+            .map_err(|error| error.to_string())?;
         }
         if self.password != self.password_confirmation {
             return Err(crate::tr!(

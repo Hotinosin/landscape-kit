@@ -121,8 +121,7 @@ pub fn parse_landscape_version(value: &str) -> Result<Version, ProtocolError> {
         return Err(ProtocolError::NonCanonicalVersion(value.into()));
     }
     if !version.build.is_empty()
-        || (!version.pre.is_empty()
-            && version.pre.as_str().split('.').next() != Some("extension"))
+        || (!version.pre.is_empty() && version.pre.as_str().split('.').next() != Some("extension"))
     {
         return Err(ProtocolError::UnstableVersion(version));
     }

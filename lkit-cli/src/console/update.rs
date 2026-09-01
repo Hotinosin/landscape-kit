@@ -403,9 +403,7 @@ impl ConsoleApp {
                 crate::release::repository::github::DEFAULT_REPOSITORY.into(),
             ),
             UpdateRepositoryMode::Mirror => plan::RepositoryChoice::Mirror,
-            UpdateRepositoryMode::Custom => {
-                custom_repository(self.update.repository_url.trim())
-            }
+            UpdateRepositoryMode::Custom => custom_repository(self.update.repository_url.trim()),
         };
         let version = self.update.version.trim().to_string();
         let language = crate::i18n::current();

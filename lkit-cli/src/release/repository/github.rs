@@ -371,8 +371,7 @@ fn parse_tag(tag: &str, allow_extensions: bool) -> Option<Version> {
     if version.to_string() != value
         || !version.build.is_empty()
         || (!version.pre.is_empty()
-            && (!allow_extensions
-                || version.pre.as_str().split('.').next() != Some("extension")))
+            && (!allow_extensions || version.pre.as_str().split('.').next() != Some("extension")))
     {
         return None;
     }
@@ -505,7 +504,11 @@ mod tests {
             prerelease: false,
             assets: Vec::new(),
         };
-        assert!(latest_release_version(&invalid_tag, false).unwrap().is_none());
+        assert!(
+            latest_release_version(&invalid_tag, false)
+                .unwrap()
+                .is_none()
+        );
 
         let prerelease = GithubRelease {
             tag_name: "1.2.3".into(),

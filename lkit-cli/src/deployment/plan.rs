@@ -50,9 +50,8 @@ impl std::fmt::Display for TargetVersion {
 
 pub(crate) fn compare_versions(left: &Version, right: &Version) -> std::cmp::Ordering {
     if (left.major, left.minor, left.patch) == (right.major, right.minor, right.patch) {
-        let extension = |version: &Version| {
-            version.pre.as_str().split('.').next() == Some("extension")
-        };
+        let extension =
+            |version: &Version| version.pre.as_str().split('.').next() == Some("extension");
         match (extension(left), extension(right)) {
             (true, false) => return std::cmp::Ordering::Greater,
             (false, true) => return std::cmp::Ordering::Less,
@@ -478,8 +477,14 @@ mod tests {
         let upstream = Version::parse("0.24.2").unwrap();
         let first = Version::parse("0.24.2-extension.1").unwrap();
         let second = Version::parse("0.24.2-extension.2").unwrap();
-        assert_eq!(compare_versions(&first, &upstream), std::cmp::Ordering::Greater);
-        assert_eq!(compare_versions(&second, &first), std::cmp::Ordering::Greater);
+        assert_eq!(
+            compare_versions(&first, &upstream),
+            std::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            compare_versions(&second, &first),
+            std::cmp::Ordering::Greater
+        );
     }
 
     #[test]
