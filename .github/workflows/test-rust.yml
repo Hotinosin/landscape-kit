@@ -1,3 +1,4 @@
+# Keep this workflow available in forks for remote-only validation.
 name: Test Rust workspace
 
 on:
