@@ -1,6 +1,7 @@
 name: Release lkit and lflare
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
