@@ -88,10 +88,7 @@ impl SelfUpgradeFixture {
             }],
         });
         let api = RepositoryServer::start(HashMap::from([(
-            format!(
-                "/repos/{}/releases/tags/{tag}",
-                "Hotinosin/landscape-kit"
-            ),
+            format!("/repos/{}/releases/tags/{tag}", "Hotinosin/landscape-kit"),
             serde_json::to_vec(&release).unwrap(),
         )]));
         Self { api, downloads }

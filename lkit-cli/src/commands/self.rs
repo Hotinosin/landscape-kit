@@ -64,8 +64,7 @@ fn unit_origin_dir() -> PathBuf {
 }
 
 const GITHUB_API_ROOT: &str = "https://api.github.com";
-const RELEASES_DOWNLOAD_ROOT: &str =
-    "https://github.com/Hotinosin/landscape-kit/releases/download";
+const RELEASES_DOWNLOAD_ROOT: &str = "https://github.com/Hotinosin/landscape-kit/releases/download";
 
 #[derive(Debug, Args)]
 pub struct SelfCommand {
