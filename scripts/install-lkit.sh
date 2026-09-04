@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-RELEASE_BASE_URL=https://github.com/landscape-router/landscape-kit/releases/latest/download
+RELEASE_BASE_URL=https://github.com/Hotinosin/landscape-kit/releases/latest/download
 install_path=${LKIT_INSTALL_PATH:-/usr/local/bin/lkit}
 work_directory=
 staged_path=

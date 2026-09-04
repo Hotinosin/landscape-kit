@@ -145,7 +145,7 @@ fn self_upgrade_replaces_binary_and_restarts_active_daemon() {
     assert_eq!(
         fixture.api.request_paths(),
         vec![format!(
-            "/repos/landscape-router/landscape-kit/releases/tags/{tag}"
+            "/repos/Hotinosin/landscape-kit/releases/tags/{tag}"
         )]
     );
     assert_eq!(

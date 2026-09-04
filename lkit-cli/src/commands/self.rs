@@ -31,7 +31,7 @@ use crate::service::manager::{Availability, ManagedService, ServiceManager, Syst
 use crate::service::systemd::{self, Systemd};
 
 /// lkit 自身的 GitHub 仓库(与 landscape-webserver 仓库不同)。
-pub(crate) const LKIT_REPOSITORY: &str = "landscape-router/landscape-kit";
+pub(crate) const LKIT_REPOSITORY: &str = "Hotinosin/landscape-kit";
 /// CLI 二进制固定位置(由 install.sh 安装,self 命令只读不删)。
 pub(crate) const LKIT_BINARY: &str = "/usr/local/bin/lkit";
 /// 全局 unit 原件目录。
@@ -65,7 +65,7 @@ fn unit_origin_dir() -> PathBuf {
 
 const GITHUB_API_ROOT: &str = "https://api.github.com";
 const RELEASES_DOWNLOAD_ROOT: &str =
-    "https://github.com/landscape-router/landscape-kit/releases/download";
+    "https://github.com/Hotinosin/landscape-kit/releases/download";
 
 #[derive(Debug, Args)]
 pub struct SelfCommand {
