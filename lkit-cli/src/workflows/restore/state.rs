@@ -28,7 +28,7 @@ pub(super) async fn create_protection_backup<P: DocsProbe>(
     pipeline::verify_current_backend(root, state)?;
     let token = (options.token)()?;
     let exported = export::export_config(&options.export_base_url, &token).await?;
-    if exported.version != state.active_version {
+    if !export::version_matches_install(&exported.version, &state.active_version) {
         return Err(InstallError::ExportFailed(format!(
             "exported version {} does not match the running version {}",
             exported.version, state.active_version

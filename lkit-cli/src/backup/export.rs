@@ -13,6 +13,23 @@ use super::plan::InstallError;
 pub(crate) const EXPORT_PATH: &str = "/api/v1/system/config/export";
 pub(crate) const MAX_TOKEN_BYTES: u64 = 1024 * 1024;
 
+pub(crate) fn version_matches_install(exported: &str, installed: &str) -> bool {
+    if exported == installed {
+        return true;
+    }
+    let (Ok(exported), Ok(installed)) = (
+        parse_stable_version(exported),
+        parse_stable_version(installed),
+    ) else {
+        return false;
+    };
+    installed.pre.as_str() == "extension"
+        && exported.pre.is_empty()
+        && exported.major == installed.major
+        && exported.minor == installed.minor
+        && exported.patch == installed.patch
+}
+
 pub(crate) struct ExportResult {
     pub version: String,
     pub content: String,
@@ -168,6 +185,14 @@ mod tests {
 
     use super::super::repository::test_server::{TestResponse, TestServer};
     use super::*;
+
+    #[test]
+    fn accepts_only_the_legacy_extension_version_mismatch() {
+        assert!(version_matches_install("0.24.2", "0.24.2"));
+        assert!(version_matches_install("0.24.2", "0.24.2-extension"));
+        assert!(!version_matches_install("0.24.2", "0.24.2-extension.1"));
+        assert!(!version_matches_install("0.24.1", "0.24.2-extension"));
+    }
 
     fn temp_dir(name: &str) -> std::path::PathBuf {
         let root =
