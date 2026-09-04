@@ -110,10 +110,7 @@ pub(crate) async fn switch_version<P: DocsProbe>(
         if !service_stopped {
             let token = (options.token)()?;
             let exported = super::export::export_config(&options.export_base_url, &token).await?;
-            if !super::export::version_matches_install(
-                &exported.version,
-                &state.active_version,
-            ) {
+            if !super::export::version_matches_install(&exported.version, &state.active_version) {
                 return Err(InstallError::ExportFailed(format!(
                     "exported version {} does not match the running version {}",
                     exported.version, state.active_version

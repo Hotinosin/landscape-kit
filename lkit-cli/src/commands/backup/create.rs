@@ -155,10 +155,8 @@ pub(crate) async fn create_manual_backup(
         runtime.managed_uid,
     )?;
     let exported = crate::backup::export::export_config(&runtime.export_base_url, &token).await?;
-    if !crate::backup::export::version_matches_install(
-        &exported.version,
-        &installed.active_version,
-    ) {
+    if !crate::backup::export::version_matches_install(&exported.version, &installed.active_version)
+    {
         return Err(plan::InstallError::ExportFailed(format!(
             "exported version {} does not match the running version {}",
             exported.version, installed.active_version
