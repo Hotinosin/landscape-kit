@@ -148,7 +148,7 @@ impl Default for InstallForm {
         Self {
             version: "latest".into(),
             repository: RepositoryMode::Default,
-            repository_url: plan::DEFAULT_HTTP_MIRROR.into(),
+            repository_url: String::new(),
             install_dir: std::env::var("LKIT_INSTALL_DIR")
                 .unwrap_or_else(|_| plan::DEFAULT_INSTALL_ROOT.into()),
             admin_user: "admin".into(),
@@ -289,13 +289,9 @@ impl InstallForm {
         plan::validate_admin_user(&self.admin_user).map_err(|error| error.to_string())?;
         if self.repository == RepositoryMode::Custom {
             let location = self.repository_url.trim().to_string();
-            if location.contains("://") {
-                plan::RepositoryChoice::Http(location)
-            } else {
-                plan::RepositoryChoice::Github(location)
-            }
-            .resolve()
-            .map_err(|error| error.to_string())?;
+            plan::RepositoryChoice::Github(location)
+                .resolve()
+                .map_err(|error| error.to_string())?;
         }
         if self.password != self.password_confirmation {
             return Err(crate::tr!(

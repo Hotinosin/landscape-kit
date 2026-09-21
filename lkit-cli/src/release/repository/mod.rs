@@ -83,6 +83,7 @@ impl Asset {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ReleaseAssets {
     pub(crate) webserver: Asset,
+    pub(crate) redirect_pkg_handler: Option<Asset>,
     pub(crate) static_archive: Asset,
 }
 

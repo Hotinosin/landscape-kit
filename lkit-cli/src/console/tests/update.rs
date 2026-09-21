@@ -180,12 +180,12 @@ fn update_repository_modes_map_to_cli_flags() {
         ),
         (
             UpdateRepositoryMode::Custom,
-            Some(Some("https://example.com/releases/".into())),
-            vec!["--repository", "https://example.com/releases/"],
+            Some(Some("owner/landscape".into())),
+            vec!["--repository", "owner/landscape"],
         ),
     ] {
         app.update.repository = mode;
-        app.update.repository_url = "https://example.com/releases/".into();
+        app.update.repository_url = "owner/landscape".into();
         let action = app.update_action();
         let ConsoleAction::Command { command, args } = action else {
             panic!("{mode:?} must build an update command");

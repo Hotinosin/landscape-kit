@@ -12,6 +12,7 @@ use super::repository::{AssetEncoding, Release};
 use super::root::InstallRoot;
 
 pub(crate) const WEBSERVER_BINARY: &str = "landscape-webserver";
+pub(crate) const REDIRECT_PKG_HANDLER_BINARY: &str = "redirect_pkg_handler";
 pub(crate) const STATIC_DIR: &str = "static";
 
 pub(crate) struct BuiltRelease {
@@ -76,6 +77,11 @@ fn reuse_existing_release(
     if !binary.is_file() || !static_dir.is_dir() || !static_dir.join("index.html").is_file() {
         return Err(InstallError::ReleaseExists(release.version.to_string()));
     }
+    if release.assets.redirect_pkg_handler.is_some()
+        && !final_path.join(REDIRECT_PKG_HANDLER_BINARY).is_file()
+    {
+        return Err(InstallError::ReleaseExists(release.version.to_string()));
+    }
     if !static_zip.is_file() {
         return Err(InstallError::ReleaseExists(release.version.to_string()));
     }
@@ -100,8 +106,28 @@ fn reuse_existing_release(
 async fn build_release_inner(release: &Release, tmp: &Path) -> Result<BuiltRelease, InstallError> {
     std::fs::create_dir_all(tmp).map_err(InstallError::Io)?;
     let built = fetch_webserver_asset(release, tmp).await?;
+    fetch_redirect_pkg_handler_asset(release, tmp).await?;
     fetch_static_asset(release, tmp).await?;
     Ok(built)
+}
+
+async fn fetch_redirect_pkg_handler_asset(
+    release: &Release,
+    target_dir: &Path,
+) -> Result<(), InstallError> {
+    let Some(asset) = &release.assets.redirect_pkg_handler else {
+        return Ok(());
+    };
+    let target = target_dir.join(REDIRECT_PKG_HANDLER_BINARY);
+    DownloadClient::new()?
+        .download_asset(
+            &release.version,
+            asset,
+            "Landscape redirect package handler",
+            &target,
+        )
+        .await?;
+    set_mode(&target, 0o755)
 }
 
 /// 下载并校验后端资产,解压到 `target_dir/landscape-webserver` 并设置执行权限。
@@ -248,6 +274,7 @@ mod tests {
             version: version(),
             assets: ReleaseAssets {
                 webserver,
+                redirect_pkg_handler: None,
                 static_archive,
             },
         }
@@ -395,6 +422,10 @@ mod tests {
         };
         let files = HashMap::from([
             ("/landscape-webserver".to_string(), BINARY.to_vec()),
+            (
+                "/redirect_pkg_handler".to_string(),
+                b"redirect-handler".to_vec(),
+            ),
             ("/static.zip".to_string(), static_zip.clone()),
         ]);
         let server = TestServer::start(move |path| match files.get(path) {
@@ -403,7 +434,7 @@ mod tests {
         });
         let (binary_sha, binary_size) = sha256_bytes(BINARY);
         let (static_sha, static_size) = sha256_bytes(&static_zip);
-        let release = release(
+        let mut release = release(
             Asset::checked(
                 Url::parse(&format!("{}/landscape-webserver", server.base)).unwrap(),
                 binary_sha.clone(),
@@ -419,6 +450,10 @@ mod tests {
             )
             .unwrap(),
         );
+        release.assets.redirect_pkg_handler = Some(asset(
+            &format!("{}/redirect_pkg_handler", server.base),
+            b"redirect-handler",
+        ));
         let (root, _guard) = temp_root("no-existing");
         let built = build_release(&root, &release).await.unwrap();
         assert_eq!(built.webserver_sha256, binary_sha);
@@ -426,6 +461,12 @@ mod tests {
         assert_eq!(
             std::fs::read(root.canonical.join("releases/1.2.3/landscape-webserver")).unwrap(),
             BINARY
+        );
+        let redirect = root.canonical.join("releases/1.2.3/redirect_pkg_handler");
+        assert_eq!(std::fs::read(&redirect).unwrap(), b"redirect-handler");
+        assert_ne!(
+            std::fs::metadata(redirect).unwrap().permissions().mode() & 0o111,
+            0
         );
         assert!(
             root.canonical

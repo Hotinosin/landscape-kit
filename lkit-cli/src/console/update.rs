@@ -128,11 +128,7 @@ impl UpdateRepositoryMode {
 }
 
 fn custom_repository(location: &str) -> plan::RepositoryChoice {
-    if location.contains("://") {
-        plan::RepositoryChoice::Http(location.into())
-    } else {
-        plan::RepositoryChoice::Github(location.into())
-    }
+    plan::RepositoryChoice::Github(location.into())
 }
 
 /// 卸载面板：版本/服务摘要 + 数据损失与保留物说明 + 确认层。
@@ -163,7 +159,7 @@ impl Default for UpdatePanel {
         Self {
             version: "latest".into(),
             repository: UpdateRepositoryMode::Github,
-            repository_url: plan::DEFAULT_HTTP_MIRROR.into(),
+            repository_url: String::new(),
             selected: UpdateField::Version,
             editing: false,
             current_source: None,

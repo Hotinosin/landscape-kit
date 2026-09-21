@@ -173,6 +173,7 @@ impl HttpRepository {
             version: version.clone(),
             assets: ReleaseAssets {
                 webserver: resolve_asset(&manifest_base_url, webserver, AssetEncoding::Zstd)?,
+                redirect_pkg_handler: None,
                 static_archive: resolve_asset(
                     &manifest_base_url,
                     &manifest.assets.static_archive,
@@ -637,6 +638,7 @@ mod tests {
             version: requested_version,
             assets: ReleaseAssets {
                 webserver: resolve_asset(&base_url, webserver, AssetEncoding::Zstd)?,
+                redirect_pkg_handler: None,
                 static_archive: resolve_asset(
                     &base_url,
                     &manifest.assets.static_archive,

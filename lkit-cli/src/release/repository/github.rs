@@ -224,6 +224,10 @@ impl GithubRepository {
             Architecture::X86_64 => "landscape-webserver-x86_64",
             Architecture::Aarch64 => "landscape-webserver-aarch64",
         };
+        let redirect_asset_name = match architecture {
+            Architecture::X86_64 => "redirect_pkg_handler-x86_64",
+            Architecture::Aarch64 => "redirect_pkg_handler-aarch64",
+        };
         let webserver = unique_asset(&release.assets, asset_name, version)?.ok_or_else(|| {
             RepositoryError::MissingArchitecture {
                 version: version.clone(),
@@ -234,6 +238,12 @@ impl GithubRepository {
             unique_asset(&release.assets, "static.zip", version)?.ok_or_else(|| {
                 RepositoryError::InvalidRelease(format!(
                     "release {version} is missing the static.zip asset"
+                ))
+            })?;
+        let redirect_pkg_handler = unique_asset(&release.assets, redirect_asset_name, version)?
+            .ok_or_else(|| {
+                RepositoryError::InvalidRelease(format!(
+                    "release {version} is missing the {redirect_asset_name} asset"
                 ))
             })?;
         let checksum_asset = unique_asset(&release.assets, "SHASUM256sum.txt", version)?
@@ -264,6 +274,11 @@ impl GithubRepository {
                 "SHASUM256sum.txt is missing a checksum for static.zip".into(),
             )
         })?;
+        let redirect_sha = checksums.get(redirect_asset_name).ok_or_else(|| {
+            RepositoryError::ChecksumParse(format!(
+                "SHASUM256sum.txt is missing a checksum for {redirect_asset_name}"
+            ))
+        })?;
 
         let webserver_url =
             Url::parse(&webserver.browser_download_url).map_err(RepositoryError::InvalidUrl)?;
@@ -271,6 +286,9 @@ impl GithubRepository {
         let static_url = Url::parse(&static_archive.browser_download_url)
             .map_err(RepositoryError::InvalidUrl)?;
         validate_github_download_url(&static_url, &self.repository)?;
+        let redirect_url = Url::parse(&redirect_pkg_handler.browser_download_url)
+            .map_err(RepositoryError::InvalidUrl)?;
+        validate_github_download_url(&redirect_url, &self.repository)?;
 
         Ok(Release {
             version: version.clone(),
@@ -281,6 +299,12 @@ impl GithubRepository {
                     webserver.size,
                     AssetEncoding::Identity,
                 )?,
+                redirect_pkg_handler: Some(Asset::checked(
+                    redirect_url,
+                    redirect_sha.clone(),
+                    redirect_pkg_handler.size,
+                    AssetEncoding::Identity,
+                )?),
                 static_archive: Asset::checked(
                     static_url,
                     static_sha.clone(),

@@ -294,7 +294,7 @@ fn install_form_builds_cli_and_domain_request() {
     let mut form = InstallForm {
         version: "1.2.3".into(),
         repository: RepositoryMode::Custom,
-        repository_url: "https://example.com/releases/".into(),
+        repository_url: "owner/landscape".into(),
         install_dir: "/opt/landscape".into(),
         admin_user: "operator".into(),
         password: "Secret123".into(),
@@ -311,10 +311,7 @@ fn install_form_builds_cli_and_domain_request() {
         panic!("expected install request");
     };
     assert_eq!(install.version.as_deref(), Some("1.2.3"));
-    assert_eq!(
-        install.repository,
-        Some(Some("https://example.com/releases/".into()))
-    );
+    assert_eq!(install.repository, Some(Some("owner/landscape".into())));
     assert!(!format!("{install:?}").contains("Secret123"));
     assert_eq!(install.interactive_password.as_deref(), Some("Secret123"));
     assert!(install.password_file.is_none());
