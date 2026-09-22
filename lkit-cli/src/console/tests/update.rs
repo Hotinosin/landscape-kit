@@ -45,7 +45,7 @@ fn update_panel_navigation_edits_version_and_reaches_url_when_custom() {
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     assert_eq!(
         app.update.selected,
-        UpdateField::Start,
+        UpdateField::RedirectPkgHandler,
         "the hidden URL row must be skipped for non-custom repositories"
     );
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
@@ -103,6 +103,13 @@ fn update_resolution_branches_like_the_update_command() {
     let mut app = update_ready_app();
     let mut notice = String::new();
 
+    app.update
+        .apply_resolution(&mut notice, resolved("1.2.3", "1.2.3"));
+    assert!(notice.is_empty());
+    assert!(app.update.confirming.is_some());
+
+    app.update.confirming = None;
+    app.update.update_redirect_pkg_handler = false;
     app.update
         .apply_resolution(&mut notice, resolved("1.2.3", "1.2.3"));
     assert!(notice.contains("already up to date"));

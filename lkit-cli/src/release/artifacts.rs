@@ -130,6 +130,39 @@ async fn fetch_redirect_pkg_handler_asset(
     set_mode(&target, 0o755)
 }
 
+pub(crate) async fn refresh_redirect_pkg_handler(
+    root: &InstallRoot,
+    release: &Release,
+) -> Result<bool, InstallError> {
+    let Some(asset) = &release.assets.redirect_pkg_handler else {
+        return Ok(false);
+    };
+    let release_dir = root
+        .canonical
+        .join("releases")
+        .join(release.version.to_string());
+    let target = release_dir.join(REDIRECT_PKG_HANDLER_BINARY);
+    let temporary = release_dir.join(".redirect_pkg_handler.tmp");
+    let _ = std::fs::remove_file(&temporary);
+    let result = async {
+        DownloadClient::new()?
+            .download_asset(
+                &release.version,
+                asset,
+                "Landscape redirect package handler",
+                &temporary,
+            )
+            .await?;
+        set_mode(&temporary, 0o755)?;
+        std::fs::rename(&temporary, &target).map_err(InstallError::Io)
+    }
+    .await;
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result.map(|_| true)
+}
+
 /// 下载并校验后端资产,解压到 `target_dir/landscape-webserver` 并设置执行权限。
 /// 返回落盘后端的实际摘要与大小。
 pub(crate) async fn fetch_webserver_asset(
@@ -458,6 +491,10 @@ mod tests {
         let built = build_release(&root, &release).await.unwrap();
         assert_eq!(built.webserver_sha256, binary_sha);
         assert_eq!(built.webserver_size, binary_size);
+        let redirect = root.canonical.join("releases/1.2.3/redirect_pkg_handler");
+        std::fs::remove_file(&redirect).unwrap();
+        assert!(refresh_redirect_pkg_handler(&root, &release).await.unwrap());
+        assert_eq!(std::fs::read(&redirect).unwrap(), b"redirect-handler");
         assert_eq!(
             std::fs::read(root.canonical.join("releases/1.2.3/landscape-webserver")).unwrap(),
             BINARY

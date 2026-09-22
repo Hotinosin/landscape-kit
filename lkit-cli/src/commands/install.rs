@@ -91,6 +91,7 @@ pub async fn run(args: &Install) -> ExitCode {
         repair_static: false,
         repair_official: false,
         repair_binary: false,
+        update_redirect_pkg_handler: true,
         allow_no_backup: false,
         accept_service_change: false,
         force: args.force,

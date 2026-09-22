@@ -54,14 +54,16 @@ pub(crate) enum UpdateField {
     Version,
     Repository,
     RepositoryUrl,
+    RedirectPkgHandler,
     Start,
 }
 
 impl UpdateField {
-    pub(crate) const ALL: [Self; 4] = [
+    pub(crate) const ALL: [Self; 5] = [
         Self::Version,
         Self::Repository,
         Self::RepositoryUrl,
+        Self::RedirectPkgHandler,
         Self::Start,
     ];
 
@@ -87,6 +89,9 @@ impl UpdateField {
             Self::Version => crate::tr!(crate::keys::CONSOLE_VERSION_LABEL),
             Self::Repository => crate::tr!(crate::keys::CONSOLE_REPOSITORY_LABEL),
             Self::RepositoryUrl => crate::tr!(crate::keys::CONSOLE_REPOSITORY_URL_LABEL),
+            Self::RedirectPkgHandler => {
+                crate::tr!(crate::keys::CONSOLE_UPDATE_REDIRECT_PKG_HANDLER)
+            }
             Self::Start => String::new(),
         }
     }
@@ -96,6 +101,14 @@ impl UpdateField {
             Self::Version => panel.version.clone(),
             Self::Repository => panel.repository.label(panel.current_source.as_ref()),
             Self::RepositoryUrl => panel.repository_url.clone(),
+            Self::RedirectPkgHandler => {
+                if panel.update_redirect_pkg_handler {
+                    "[x]"
+                } else {
+                    "[ ]"
+                }
+                .into()
+            }
             Self::Start => crate::tr!(crate::keys::CONSOLE_UPDATE_BUTTON),
         }
     }
@@ -146,6 +159,7 @@ pub(crate) struct UpdatePanel {
     pub(crate) version: String,
     pub(crate) repository: UpdateRepositoryMode,
     pub(crate) repository_url: String,
+    pub(crate) update_redirect_pkg_handler: bool,
     pub(crate) selected: UpdateField,
     pub(crate) editing: bool,
     pub(crate) current_source: Option<RepositorySource>,
@@ -160,6 +174,7 @@ impl Default for UpdatePanel {
             version: "latest".into(),
             repository: UpdateRepositoryMode::Github,
             repository_url: String::new(),
+            update_redirect_pkg_handler: true,
             selected: UpdateField::Version,
             editing: false,
             current_source: None,
@@ -253,10 +268,14 @@ impl UpdatePanel {
     pub(crate) fn apply_resolution(&mut self, notice: &mut String, resolved: ResolvedUpdate) {
         match plan::compare_versions(&resolved.current, &resolved.target) {
             std::cmp::Ordering::Equal => {
-                *notice = crate::tr!(
-                    crate::keys::UPDATE_ALREADY_UP_TO_DATE,
-                    version = resolved.current
-                );
+                if self.update_redirect_pkg_handler {
+                    self.confirming = Some(resolved);
+                } else {
+                    *notice = crate::tr!(
+                        crate::keys::UPDATE_ALREADY_UP_TO_DATE,
+                        version = resolved.current
+                    );
+                }
             }
             std::cmp::Ordering::Greater => {
                 *notice = crate::tr!(
@@ -358,6 +377,10 @@ impl ConsoleApp {
             KeyCode::Enter | KeyCode::Char(' ') => match self.update.selected {
                 UpdateField::Version | UpdateField::RepositoryUrl => self.update.editing = true,
                 UpdateField::Repository => self.update.change(true),
+                UpdateField::RedirectPkgHandler => {
+                    self.update.update_redirect_pkg_handler =
+                        !self.update.update_redirect_pkg_handler;
+                }
                 UpdateField::Start => {
                     if let Err(error) = self.start_update_resolution() {
                         self.notice = error;
@@ -476,6 +499,7 @@ impl ConsoleApp {
             repository: repository.clone(),
             accept_service_change: false,
             allow_no_backup: false,
+            update_redirect_pkg_handler: self.update.update_redirect_pkg_handler,
             console_confirmed: true,
             #[cfg(feature = "test-support")]
             test_runtime: None,
@@ -494,6 +518,10 @@ impl ConsoleApp {
             Some(None) => args.push("--repository".into()),
             Some(Some(url)) => args.extend(["--repository".into(), url.clone()]),
         }
+        args.extend([
+            "--update-redirect-pkg-handler".into(),
+            self.update.update_redirect_pkg_handler.to_string(),
+        ]);
         ConsoleAction::Command { command, args }
     }
 }
@@ -623,11 +651,16 @@ pub(crate) fn render_update_confirmation(frame: &mut Frame<'_>, app: &mut Consol
         height,
     );
     register_dialog_hits(&mut app.hits, screen, area);
+    let same_version = resolved.current == resolved.target;
     frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(vec![
             Line::styled(
-                crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_QUESTION),
+                if same_version {
+                    crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_REDIRECT_HANDLER)
+                } else {
+                    crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_QUESTION)
+                },
                 Style::default().add_modifier(Modifier::BOLD),
             ),
             Line::raw(""),
@@ -636,7 +669,11 @@ pub(crate) fn render_update_confirmation(frame: &mut Frame<'_>, app: &mut Consol
                 current = resolved.current,
                 target = resolved.target
             )),
-            Line::raw(crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_NOTE)),
+            Line::raw(if same_version {
+                crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_REDIRECT_HANDLER_NOTE)
+            } else {
+                crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_NOTE)
+            }),
             Line::raw(""),
             Line::raw(crate::tr!(crate::keys::CONSOLE_UPDATE_CONFIRM_PRESS_ENTER)),
             Line::styled(

@@ -23,6 +23,8 @@ pub struct Update {
     /// created in this case and automatic rollback cannot restore previous data
     #[arg(long)]
     pub allow_no_backup: bool,
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    pub update_redirect_pkg_handler: bool,
     /// The interactive console already asked for the repository and the
     /// upgrade confirmation; skip every /dev/tty prompt (delegated workers
     /// cannot read TUI keyboard input)
@@ -99,6 +101,14 @@ async fn run_update(
             )));
         }
         std::cmp::Ordering::Equal => {
+            if args.update_redirect_pkg_handler {
+                let _lock = crate::deployment::lock::acquire_install_lock()?;
+                crate::release::artifacts::refresh_redirect_pkg_handler(
+                    &normalized,
+                    &resolved.release,
+                )
+                .await?;
+            }
             println!(
                 "install: {}",
                 crate::tr!(
@@ -136,6 +146,7 @@ async fn run_update(
 pub(crate) struct ResolvedUpdate {
     pub current: semver::Version,
     pub target: semver::Version,
+    pub release: crate::release::repository::Release,
 }
 
 /// 解析目标版本并与当前版本比较:只做网络只读解析,不创建事务、不下载资产。
@@ -166,7 +177,8 @@ pub(crate) async fn resolve_update_target(
         .map_err(|_| plan::InstallError::CorruptedState("invalid active version".into()))?;
     Ok(ResolvedUpdate {
         current,
-        target: release.version,
+        target: release.version.clone(),
+        release,
     })
 }
 
@@ -182,6 +194,7 @@ fn switch_request(args: &Update, version: String, repository: RepositoryChoice) 
         repair_static: false,
         repair_official: false,
         repair_binary: false,
+        update_redirect_pkg_handler: args.update_redirect_pkg_handler,
         allow_no_backup: args.allow_no_backup,
         accept_service_change: args.accept_service_change,
         force: false,
@@ -259,6 +272,7 @@ mod tests {
             repository: None,
             accept_service_change: true,
             allow_no_backup: true,
+            update_redirect_pkg_handler: true,
             console_confirmed: false,
             #[cfg(feature = "test-support")]
             test_runtime: Some(PathBuf::from("/tmp/lkit-update-runtime.json")),

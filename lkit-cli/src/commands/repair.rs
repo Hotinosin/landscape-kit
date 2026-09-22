@@ -48,6 +48,7 @@ pub async fn run(args: &Repair) -> ExitCode {
         interactive_password: None,
         repair_static: !binary,
         repair_binary: binary,
+        update_redirect_pkg_handler: true,
         repair_official: !binary && args.official,
         allow_no_backup: false,
         accept_service_change: false,

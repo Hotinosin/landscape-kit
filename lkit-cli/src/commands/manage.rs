@@ -47,6 +47,9 @@ pub(crate) struct InstallRequest {
     /// Authorize repairing a same-version backend with a mismatched checksum
     pub(crate) repair_binary: bool,
 
+    /// Download the redirect package handler when updating Landscape.
+    pub(crate) update_redirect_pkg_handler: bool,
+
     /// Authorize switching while the managed service is stopped without a
     /// configuration snapshot; no `.lkb` backup is created in this case
     pub(crate) allow_no_backup: bool,
@@ -801,6 +804,7 @@ mod tests {
             interactive_password: password.map(str::to_string),
             repair_static: false,
             repair_binary: false,
+            update_redirect_pkg_handler: true,
             repair_official: false,
             allow_no_backup: false,
             accept_service_change: false,

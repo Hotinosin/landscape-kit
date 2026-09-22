@@ -123,7 +123,7 @@ async fn run_installed_inner(
         .as_deref()
         .map(plan::TargetVersion::parse)
         .transpose()?;
-    let release = if let Some(target) = version_request {
+    let mut release = if let Some(target) = version_request {
         let (provider, _override) = resolve_provider(args, &plan.root)?;
         Some(match target {
             plan::TargetVersion::Latest => provider
@@ -137,6 +137,11 @@ async fn run_installed_inner(
     } else {
         None
     };
+    if !args.update_redirect_pkg_handler
+        && let Some(release) = &mut release
+    {
+        release.assets.redirect_pkg_handler = None;
+    }
     if let Some(release) = release
         && release.version.to_string() != state.active_version
     {

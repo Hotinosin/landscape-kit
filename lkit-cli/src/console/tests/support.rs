@@ -233,9 +233,25 @@ pub(crate) fn update_ready_app() -> ConsoleApp {
 }
 
 pub(crate) fn resolved(current: &str, target: &str) -> ResolvedUpdate {
+    let version = semver::Version::parse(target).unwrap();
+    let asset = crate::release::repository::Asset::checked(
+        url::Url::parse("https://example.com/asset").unwrap(),
+        "a".repeat(64),
+        1,
+        crate::release::repository::AssetEncoding::Identity,
+    )
+    .unwrap();
     ResolvedUpdate {
         current: semver::Version::parse(current).unwrap(),
-        target: semver::Version::parse(target).unwrap(),
+        target: version.clone(),
+        release: crate::release::repository::Release {
+            version,
+            assets: crate::release::repository::ReleaseAssets {
+                webserver: asset.clone(),
+                redirect_pkg_handler: Some(asset.clone()),
+                static_archive: asset,
+            },
+        },
     }
 }
 

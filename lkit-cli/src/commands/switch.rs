@@ -36,6 +36,7 @@ pub async fn run(args: &Switch) -> ExitCode {
         repair_static: false,
         repair_official: false,
         repair_binary: false,
+        update_redirect_pkg_handler: true,
         allow_no_backup: args.allow_no_backup,
         accept_service_change: args.accept_service_change,
         force: false,
