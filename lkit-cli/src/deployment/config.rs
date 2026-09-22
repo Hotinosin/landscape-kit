@@ -32,6 +32,17 @@ impl RepositorySourceKind {
 }
 
 impl RepositorySource {
+    fn from_choice(choice: &RepositoryChoice) -> Result<Self, InstallError> {
+        let provider = choice.clone().resolve()?;
+        Ok(Self {
+            kind: match provider.kind {
+                crate::release::repository::ProviderKind::Github => RepositorySourceKind::Github,
+                crate::release::repository::ProviderKind::Http => RepositorySourceKind::Http,
+            },
+            location: provider.location,
+        })
+    }
+
     /// 转换为 CLI/计划层统一的仓库选择。规范化的来源可直接解析为 provider。
     pub(crate) fn to_choice(&self) -> RepositoryChoice {
         match self.kind {
@@ -197,6 +208,34 @@ pub(crate) fn resolve_default_choice() -> Result<RepositoryChoice, InstallError>
             crate::release::repository::github::DEFAULT_REPOSITORY.into(),
         )),
     }
+}
+
+/// 记录最近一次成功解析并使用的更新来源，同时保留其它配置段。
+pub(crate) fn save_repository(choice: &RepositoryChoice) -> Result<(), InstallError> {
+    let source = RepositorySource::from_choice(choice)?;
+    let path = layout::territory_config_file();
+    let mut document = match std::fs::read_to_string(&path) {
+        Ok(text) => {
+            load_repository()?;
+            text.parse::<toml_edit::DocumentMut>().map_err(|error| {
+                InstallError::CorruptedState(format!(
+                    "{} is not a valid config file: {error}; fix or delete it to save the repository source",
+                    path.display()
+                ))
+            })?
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let mut document = toml_edit::DocumentMut::new();
+            document["schema_version"] = toml_edit::value(CONFIG_SCHEMA_VERSION as i64);
+            document
+        }
+        Err(error) => return Err(InstallError::Io(error)),
+    };
+    let mut repository = toml_edit::Table::new();
+    repository["kind"] = toml_edit::value(source.kind.key());
+    repository["location"] = toml_edit::value(source.location);
+    document["repository"] = toml_edit::Item::Table(repository);
+    atomic_write(&path, &document.to_string())
 }
 
 /// 读取 `[frontend]` 配置段并校验规范化。文件缺失时返回 `Ok(None)`（官方前端）；
@@ -794,6 +833,44 @@ location = "https://repo.example.com/landscape"
         assert_eq!(
             resolve_default_choice().unwrap(),
             RepositoryChoice::Http("https://repo.example.com/landscape/".into())
+        );
+        let _ = std::fs::remove_dir_all(territory.parent().unwrap());
+    }
+
+    #[test]
+    fn save_repository_normalizes_source_and_preserves_other_sections() {
+        let (_guard, territory) = setup("save-repository");
+        save_repository(&RepositoryChoice::Github("Hotinosin/landscape".into())).unwrap();
+        assert_eq!(
+            load_repository().unwrap().unwrap(),
+            RepositorySource {
+                kind: RepositorySourceKind::Github,
+                location: "Hotinosin/landscape".into(),
+            }
+        );
+
+        std::fs::write(
+            territory.join("config.toml"),
+            "schema_version = 1\n\n[repository]\nkind = \"github\"\nlocation = \"ThisSeanZhang/landscape\"\n\n[future]\nkey = \"value\"\n",
+        )
+        .unwrap();
+
+        save_repository(&RepositoryChoice::Http(
+            "https://repo.example.com/landscape".into(),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            load_repository().unwrap().unwrap(),
+            RepositorySource {
+                kind: RepositorySourceKind::Http,
+                location: "https://repo.example.com/landscape/".into(),
+            }
+        );
+        assert!(
+            std::fs::read_to_string(territory.join("config.toml"))
+                .unwrap()
+                .contains("[future]\nkey = \"value\"")
         );
         let _ = std::fs::remove_dir_all(territory.parent().unwrap());
     }
