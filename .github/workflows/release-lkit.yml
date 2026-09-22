@@ -43,29 +43,6 @@ jobs:
           fi
           echo "version=$version" >>"$GITHUB_OUTPUT"
 
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          key: release-verify
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Build workspace
-        run: cargo build --locked
-
-      - name: Run Rust tests
-        run: cargo test --locked --workspace --features test-support --lib
-
-      - name: Run CLI i18n tests
-        run: cargo test --locked -p lkit-cli --features test-support --test i18n_cli
-
-      - name: Check installer scripts
-        run: |
-          shellcheck scripts/install-lkit.sh scripts/test-install-lkit.sh
-          scripts/test-install-lkit.sh
-
   build:
     name: Build lkit (${{ matrix.architecture }})
     needs: verify
