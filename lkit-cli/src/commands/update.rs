@@ -106,6 +106,7 @@ async fn run_update(
                     version = resolved.current
                 )
             );
+            crate::deployment::config::save_repository(&repository)?;
             return Ok(ExitCode::SUCCESS);
         }
         std::cmp::Ordering::Greater => {}
@@ -122,8 +123,12 @@ async fn run_update(
         println!("install: {}", crate::tr!(crate::keys::UPDATE_CANCELLED));
         return Ok(ExitCode::FAILURE);
     }
-    let request = switch_request(args, resolved.target.to_string(), repository);
-    Ok(super::manage::run_request(&request).await)
+    let request = switch_request(args, resolved.target.to_string(), repository.clone());
+    let code = super::manage::run_request(&request).await;
+    if code == ExitCode::SUCCESS {
+        crate::deployment::config::save_repository(&repository)?;
+    }
+    Ok(code)
 }
 
 /// 解析出的当前与目标版本。比较规则与 `lkit update` 命令一致。

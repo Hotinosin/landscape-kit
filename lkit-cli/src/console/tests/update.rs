@@ -259,7 +259,7 @@ fn update_load_config_offers_current_source_and_reports_corruption() {
     assert!(app.update.config_error.is_none());
     assert_eq!(app.update.repository, UpdateRepositoryMode::Github);
 
-    let preset = "schema_version = 1\n\n[repository]\nkind = \"http\"\nlocation = \"https://example.com/releases/\"\n";
+    let preset = "schema_version = 1\n\n[repository]\nkind = \"github\"\nlocation = \"Hotinosin/landscape\"\n";
     std::fs::write(dir.join("config.toml"), preset).unwrap();
     app.update.load_config();
     assert_eq!(
@@ -268,8 +268,9 @@ fn update_load_config_offers_current_source_and_reports_corruption() {
         "a valid config source must become the default option"
     );
     let source = app.update.current_source.as_ref().unwrap();
-    assert_eq!(source.kind, RepositorySourceKind::Http);
-    assert_eq!(source.location, "https://example.com/releases/");
+    assert_eq!(source.kind, RepositorySourceKind::Github);
+    assert_eq!(source.location, "Hotinosin/landscape");
+    assert_eq!(app.update.repository_url, "Hotinosin/landscape");
     assert!(app.update.config_error.is_none());
 
     std::fs::write(dir.join("config.toml"), "not a config").unwrap();

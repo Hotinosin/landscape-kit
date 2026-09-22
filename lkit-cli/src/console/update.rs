@@ -182,6 +182,7 @@ impl UpdatePanel {
                 if self.current_source.is_none() {
                     self.repository = UpdateRepositoryMode::Current;
                 }
+                self.repository_url = source.location.clone();
                 self.current_source = Some(source);
                 self.config_error = None;
             }

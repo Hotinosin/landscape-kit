@@ -23,14 +23,15 @@ landscape 根从 `install-state.json` 发现，命令不接收 `--install-dir`�
 2. **解析目标**：默认解析所选渠道的 `latest`；`--version <VERSION>` 时解析指定 stable
    版本。解析发生在任何事务或备份之前。
 3. **比较与确认**：目标版本与当前 `active_version` 比较：
-   - 相同：输出已是最新，返回 `0`，不创建事务、不下载任何资产，也不验证或持久化所选仓库来源；
+   - 相同：输出已是最新，返回 `0`，不创建事务、不下载任何资产，并记录已成功解析的仓库来源；
    - 更低：返回参数使用错误（退出码 `2`），不创建切换事务（沿用 switch 的降级规则）；
    - 更高：展示 `当前 <X> → 目标 <Y>` 并要求输入完整 `yes` 确认。拒绝这次升级确认时返回
      退出码 `1`，不创建事务、不下载、零副作用；后续仍按 switch 规则
      询问用户是否已停止外部 Landscape。
 4. **执行**：确认后复用 `lkit switch --version <Y> [--repository ...]` 的流水线。备份、
    回滚、systemd worker、退出码 `0/1/2/5/6` 语义全部与
-   switch 一致，见 [`lkit switch`](switch.md)。
+   switch 一致；仅在切换成功后记录本次仓库来源，失败、回滚或取消不覆盖旧值。见
+   [`lkit switch`](switch.md)。
 
 ## 非交互环境
 
@@ -66,5 +67,4 @@ lkit switch --version latest
   语义本身也可通过 update 获得。
 - update 本身不新增事务类型、不改变备份策略、不改变退出码契约。
 
-需要在同版本上改用新的 HTTP 仓库来源时，使用 `lkit switch --version <CURRENT> --repository <BASE_URL>`
-或 `lkit reconcile --repository <BASE_URL>`，不要依赖 update 的“已是最新”路径。
+需要在同版本上改用新的仓库来源时，可通过 update 的“已是最新”路径完成来源记录。
